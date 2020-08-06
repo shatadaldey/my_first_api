@@ -3,6 +3,7 @@ import os
 import flask 
 from flask import request
 from google.cloud import bigquery
+import matplotlib.pyplot as plot
 
 
 # Initialize flask application
@@ -17,16 +18,16 @@ def root():
 	return app_flask.send_static_file("index.html")
 
 
-@app_flask.route("/story-details")
+@app_flask.route("/year")
 def fetch_story_details(methods=['GET']):
 
 	# Fetch query parameter
 	query_params = request.args
-	story_id = query_params["storyid"]
+	year = query_params["year"]
 
 	# Fetch details from DB
 	# 1. Establish credentials
-	os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "provide-path-to-service-account-credentials.json"
+	os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/Users/shatadaldey/Desktop/pandas/my_key.json"
 
 	# 2. Establish BQ client
 	client = bigquery.Client()
@@ -34,23 +35,24 @@ def fetch_story_details(methods=['GET']):
 	# 3. Query
 	sql_query = """
 		SELECT 
-			A.id, 
-			A.by, 
-			A.score, 
-			A.title 
+			{year} as year,
+			A.year_{year}/1000000 as population
+			
 		FROM 
-			`dev-mantarays.HACKERNEWS.stories` as A
+			`deft-effect-282902.population.population_by_country` as A
 		WHERE 
-			A.id = {story_id}
+			A.country = "World"
 	"""
 
 	# 4. Fetch results
-	result = list(client.query(sql_query.format(story_id = story_id)))
-	print(result)
+	result = list(client.query(sql_query.format(year = year)))
+	# print(result)
+
 
 	# Return response to 
-	return "Story Id: {}, Published by: {}, Score: {}, Title: {}".format(result[0]['id'], 
-		result[0]['by'], result[0]['score'], result[0]['title']), 200
+	return "The population (in Million) for the year {} is/was : {}".format(result[0]['year'], 
+		result[0]['population']), 200
 
 
-app_flask.run(port=8000, host='0.0.0.0')
+
+app_flask.run(port=8002, host='0.0.0.0')
